@@ -240,6 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         userInfo.classList.add("show")
         updateCurrentUser(user)
         loadAllPlaylist()
+        initTabs()
     } catch (error) {
         authButtons.classList.add("show")
         userInfo.classList.remove("show")
@@ -399,7 +400,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             ""
         if (initialTab) setActiveTab(initialTab)
     }
-    initTabs()
     // Search Content
     searchInput.addEventListener("input", (e) => {
         renderLibraryByKeyword(e.target.value)
@@ -566,8 +566,14 @@ function CheckValidPassword(password) {
     })
 }
 // Prevent Context Menu
-window.addEventListener("contextmenu", (e) => {
+document.addEventListener("contextmenu", (e) => {
     e.preventDefault()
+    const target = e.target.closest(".library-item")
+    if (!target) return
+    const type = target.querySelector(".item-subtitle").textContent.trim().toLowerCase()
+    const X = e.clientX,
+        Y = e.clientY
+    menuContentextForLibrary(X, Y, type)
 })
 
 // Toast Message
@@ -611,3 +617,29 @@ function showToast({
         remove()
     })
 }
+// Context Menu For Library Content
+function menuContentextForLibrary(x, y, type) {
+    const menu = $(".ctx-menu")
+
+    const firstItem = menu.querySelector(".first__item")
+    const secondItem = menu.querySelector(".second__item")
+    const firstLabel = menu.querySelector(".first-label")
+    const secondLabel = menu.querySelector(".second-label")
+
+    console.log(type)
+    if (type.includes("artist")) {
+        secondItem.style.display = "none"
+        firstLabel.textContent = "Unfollow"
+    } else {
+        secondItem.style.display = "block"
+        firstLabel.textContent = "Remove from profile"
+        secondLabel.textContent = "Delete"
+    }
+    menu.style.display = "inline"
+    menu.style.left = `${x}px`
+    menu.style.top = `${y}px`
+}
+document.addEventListener("mousedown", (e) => {
+    const menu = $(".ctx-menu")
+    if (!menu.hidden && !menu.contains(e.target)) menu.style.display = "none"
+})

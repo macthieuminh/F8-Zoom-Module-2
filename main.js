@@ -175,6 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         duration: 3000,
                     })
                 }
+                location.reload()
             } catch (error) {
                 throw error
             } finally {
@@ -400,20 +401,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     initTabs()
     // Search Content
-    searchInput.addEventListener("change", (e) => {
-        const keyword = e.target.value
-        searchContent(keyword)
+    searchInput.addEventListener("input", (e) => {
+        renderLibraryByKeyword(e.target.value)
     })
-    function searchContent(keyword) {}
     function renderLibraryByKeyword(keyword = "") {
-        // const keyword = tabValue.toLowerCase()
-        const items = cachedLibraryItems.filter((it) => it.title.includes(key))
+        const key = keyword.trim().toLowerCase()
 
+        const items = cachedLibraryItems.filter(
+            (it) => it.title.includes(key) || it.subtitle.includes(key)
+        )
         if (!items.length) {
-            libraryContent.innerHTML = `<p>Coul&apos;n find &quot;${keyword}&quot;</p>`
+            libraryContent.innerHTML = `<p>Coul&apos;dn't find &quot;${keyword}&quot;</p>`
             return
         }
-
         libraryContent.replaceChildren(
             ...items.map((it) => {
                 const wrapper = document.createElement("div")
@@ -425,7 +425,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Load All Playlists.
     async function loadAllPlaylist() {
         try {
-            const { playlists } = await httpRequest.get("playlists?offset=0&limit=20")
+            const { playlists } = await httpRequest.get("playlists?offset=0&limit=5")
             const { artists } = await httpRequest.get("artists?limit=5&offset=0")
 
             const list = playlists.filter((item) => item.image_url !== null)

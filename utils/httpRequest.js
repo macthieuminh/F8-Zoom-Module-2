@@ -8,7 +8,7 @@ class HttpRequest {
                 ...options,
                 method,
                 headers: {
-                    ...options.headers,
+                    ...(options?.headers || {}),
                     "Content-Type": "application/json",
                 },
             }
@@ -28,7 +28,6 @@ class HttpRequest {
                 error.status = res.status
                 throw error
             }
-
             return response
         } catch (error) {
             throw error

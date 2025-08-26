@@ -162,10 +162,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     email,
                     password,
                 })
+                closeModal()
                 localStorage.setItem("accessToken", access_token)
                 localStorage.setItem("currentUser", JSON.stringify(user))
                 updateCurrentUser(user)
-                closeModal()
                 {
                     const name = user.display_name || user.username || ""
                     showToast({
@@ -240,7 +240,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         userInfo.classList.add("show")
         updateCurrentUser(user)
         loadAllPlaylist()
-        initTabs()
     } catch (error) {
         authButtons.classList.add("show")
         userInfo.classList.remove("show")
@@ -400,6 +399,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             ""
         if (initialTab) setActiveTab(initialTab)
     }
+    initTabs()
+
     // Search Content
     searchInput.addEventListener("input", (e) => {
         renderLibraryByKeyword(e.target.value)

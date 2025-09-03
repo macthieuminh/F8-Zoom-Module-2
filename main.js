@@ -669,18 +669,21 @@ document.addEventListener("contextmenu", (e) => {
     const firstItem = $(".first__item"),
         secondItem = $(".second__item")
     if (firstItem) {
-        firstItem.onclick = function (e) {}
+        firstItem.onclick = function (e) {
+            DeleteLibraryItem(itemID)
+        }
     }
     if (secondItem) {
         secondItem.onclick = function (e) {
             DeleteLibraryItem(itemID)
-
         }
     }
 })
 // Delete Library Item
 async function DeleteLibraryItem(id) {
     try {
+        const menu = $(".ctx-menu")
+
         const { message } = await httpRequest.del(`playlists/${id}`)
         if (message) {
             showToast({
@@ -690,7 +693,7 @@ async function DeleteLibraryItem(id) {
                 duration: 1500,
             })
             loadSidebarPlaylists()
-            
+            menu.style.display = "none"
         } else {
             return
         }
@@ -763,7 +766,6 @@ function menuContentextForLibrary(x, y, type) {
 document.addEventListener("mousedown", (e) => {
     const menu = $(".ctx-menu")
     if (!menu.hidden && !menu.contains(e.target)) menu.style.display = "none"
-
 })
 
 // Load user's playlists into sidebar

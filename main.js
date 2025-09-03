@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const loginForm = $("#loginForm")
     const showLoginBtn = $("#showLogin")
     const showSignupBtn = $("#showSignup")
-    const controlBtns = $$(".control-btn")
+    const configBtns = $$(".config-btn")
     const toggleShowPassword = $$(".password-show")
     const logoutBtn = $("#logoutBtn")
 
@@ -91,6 +91,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && authModal.classList.contains("show")) {
             closeModal()
+        }
+        if (e.key === "Escape") {
         }
     })
 
@@ -184,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
 
     // Control Buttons Toggle Active Status
-    controlBtns.forEach((btn) => {
+    configBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
             btn.classList.toggle("active")
         })
@@ -233,12 +235,14 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", async () => {
     const authButtons = $(".auth-buttons")
     const userInfo = $(".user-info")
+    const createBtn = $(".create-btn")
 
     try {
         const { user } = await httpRequest.get("users/me")
         authButtons.classList.remove("show")
         userInfo.classList.add("show")
         updateCurrentUser(user)
+        await loadSidebarPlaylists()
         loadAllPlaylist()
     } catch (error) {
         authButtons.classList.add("show")
@@ -320,6 +324,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             target.classList.add("active")
         })
     })
+    if (createBtn) {
+        createBtn.addEventListener("click", handleCreatePlaylist)
+    }
     // Slide Show Search Input (scoped to library sidebar)
     const searchContainer = $(".search-library .search-container")
     const searchBtn = $(".search-library .search-btn")
@@ -399,7 +406,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             ""
         if (initialTab) setActiveTab(initialTab)
     }
-    initTabs()
 
     // Search Content
     searchInput.addEventListener("input", (e) => {
@@ -439,15 +445,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     function renderHits(data) {
         const hitsGrid = document.querySelector(".hits-grid")
 
-        // Nếu không có data thì hiển thị fallback
         if (!data || data.length === 0) {
             hitsGrid.innerHTML = "<p>No playlists found</p>"
             return
         }
 
-        // Map dữ liệu playlist thành danh sách DOM element
         const cards = data.map((item) => {
-            if (item.image_url.includes("example")) {
+            if (item.image_url.includes("example") || item.image_url === "") {
                 item.image_url =
                     "https://mynoota.com/_next/image?url=%2F_static%2Fimages%2F__default.png&w=640&q=75"
             }
@@ -455,24 +459,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             card.className = "hit-card"
             card.dataset.id = item.id
             card.innerHTML = `
-      <div class="hit-card-cover">
-        <img src="${item.image_url}" alt="${item.name}" />
-        <button class="hit-play-btn"><i class="fas fa-play"></i></button>
-      </div>
-      <div class="hit-card-info">
-        <h3 class="hit-card-title">${item.name}</h3>
-        <p class="hit-card-artist">
-          ${item.user_display_name || item.user_username || "Unknown User"}
-        </p>
-        <p class="hit-card-meta">
-          ${item.total_tracks} tracks · ${formatDuration(item.total_duration)}
-        </p>
-      </div>
-    `
+            <div class="hit-card-cover">
+                <img src="${item.image_url}" alt="${item.name}" />
+                <button class="hit-play-btn"><i class="fas fa-play"></i></button>
+            </div>
+            <div class="hit-card-info">
+                <h3 class="hit-card-title">${item.name}</h3>
+                <p class="hit-card-artist">
+                ${item.user_display_name || item.user_username || "Unknown User"}
+                </p>
+                <p class="hit-card-meta">
+                ${item.total_tracks} tracks · ${formatDuration(item.total_duration)}
+                </p>
+            </div>
+            `
+            card.addEventListener("click", () => {
+                loadPlaylistandArtist(card.dataset.id, "playlist")
+            })
             return card
         })
 
-        // Thay toàn bộ children bằng danh sách card mới
         hitsGrid.replaceChildren(...cards)
     }
     function renderArtists(data) {
@@ -501,6 +507,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             </p>
         </div>
         `
+            card.addEventListener("click", () => {
+                loadPlaylistandArtist(card.dataset.id, "artist")
+            })
             return card
         })
 
@@ -512,8 +521,88 @@ document.addEventListener("DOMContentLoaded", async () => {
         const seconds = (totalSeconds % 60).toString().padStart(2, "0")
         return `${minutes}:${seconds}`
     }
-})
+    // Load Playlist and Artist
+    async function loadPlaylistandArtist(id, type) {
+        openDetail(true)
+        // Artist
+        const artistHero = $(".artist-hero")
+        const artistName = artistHero.querySelector(".artist-name")
+        const artistBackgroundImage = artistHero.querySelector(".hero-image")
+        const isVerified = artistHero.querySelector(".verified-badge")
+        const followers = artistHero.querySelector(".monthly-listeners")
+        // Popular
+        const popularSection = $(".popular-section")
+        const artistControls = $(".artist-controls")
 
+        if (type === "artist") {
+            const { name, background_image_url, is_verified, total_followers } =
+                await httpRequest.get(`artists/${id}`)
+            artistName.textContent = name
+            artistBackgroundImage.src = background_image_url
+            if (is_verified) {
+                isVerified.style.display = "block"
+            } else {
+                isVerified.style.display = "none"
+            }
+            followers.textContent = `${total_followers} người theo dõi`
+            popularSection.classList.add("hidden")
+            artistControls.classList.add("hidden")
+        } else if (type === "playlist") {
+            const { name, image_url, total_tracks } = await httpRequest.get(
+                `playlists/${id}`
+            )
+            artistName.textContent = name
+            artistBackgroundImage.src = image_url
+            isVerified.style.display = "none"
+            if (total_tracks === 0) {
+                popularSection.classList.add("hidden")
+                artistControls.classList.add("hidden")
+            } else {
+                popularSection.classList.remove("hidden")
+                artistControls.classList.remove("hidden")
+            }
+        }
+    }
+
+    // Home Buttons Event
+    const homeBtn = $(".home-btn")
+    homeBtn.onclick = () => {
+        openDetail(false)
+        const playlistDetailWrappers = $(".my-playlist-section")
+        playlistDetailWrappers.innerHTML = ""
+    }
+    const logoBtn = $(".logo")
+    logoBtn.onclick = () => {
+        openDetail(false)
+        const playlistDetailWrappers = $(".my-playlist-section")
+        playlistDetailWrappers.innerHTML = ""
+    }
+    initTabs()
+})
+// openDetail
+function openDetail(status) {
+    const hitSection = $(".hits-section"),
+        artistSection = $(".artists-section"),
+        artistControls = $(".artist-controls"),
+        artistHero = $(".artist-hero"),
+        popularSection = $(".popular-section")
+
+    if (status) {
+        hitSection.classList.add("hidden")
+        artistSection.classList.add("hidden")
+
+        artistControls.classList.remove("hidden")
+        artistHero.classList.remove("hidden")
+        popularSection.classList.remove("hidden")
+    } else {
+        hitSection.classList.remove("hidden")
+        artistSection.classList.remove("hidden")
+
+        artistControls.classList.add("hidden")
+        artistHero.classList.add("hidden")
+        popularSection.classList.add("hidden")
+    }
+}
 function updateCurrentUser(user) {
     const authButtons = $(".auth-buttons")
     const userInfo = $(".user-info")
@@ -570,13 +659,45 @@ function CheckValidPassword(password) {
 document.addEventListener("contextmenu", (e) => {
     e.preventDefault()
     const target = e.target.closest(".library-item")
+    const itemID = target.dataset.playlistId
     if (!target) return
-    const type = target.querySelector(".item-subtitle").textContent.trim().toLowerCase()
-    const X = e.clientX,
-        Y = e.clientY
-    menuContentextForLibrary(X, Y, type)
-})
 
+    const type = target.querySelector(".item-subtitle").textContent.trim().toLowerCase()
+    const x = e.clientX,
+        y = e.clientY
+    menuContentextForLibrary(x, y, type)
+    const firstItem = $(".first__item"),
+        secondItem = $(".second__item")
+    if (firstItem) {
+        firstItem.onclick = function (e) {}
+    }
+    if (secondItem) {
+        secondItem.onclick = function (e) {
+            DeleteLibraryItem(itemID)
+
+        }
+    }
+})
+// Delete Library Item
+async function DeleteLibraryItem(id) {
+    try {
+        const { message } = await httpRequest.del(`playlists/${id}`)
+        if (message) {
+            showToast({
+                title: "Delete successful",
+                message: "Xoá playlist thành công",
+                type: "success",
+                duration: 1500,
+            })
+            loadSidebarPlaylists()
+            
+        } else {
+            return
+        }
+    } catch (error) {
+        throw new Error(error)
+    }
+}
 // Toast Message
 function showToast({
     title = "Success",
@@ -593,6 +714,7 @@ function showToast({
 
     toast.innerHTML = `
         <i class="icon fas fa-check-circle"></i>
+
         <div class="content">
             <div class="title">${title}</div>
             <div class="message">${message}</div>
@@ -622,12 +744,10 @@ function showToast({
 function menuContentextForLibrary(x, y, type) {
     const menu = $(".ctx-menu")
 
-    const firstItem = menu.querySelector(".first__item")
     const secondItem = menu.querySelector(".second__item")
     const firstLabel = menu.querySelector(".first-label")
     const secondLabel = menu.querySelector(".second-label")
 
-    console.log(type)
     if (type.includes("artist")) {
         secondItem.style.display = "none"
         firstLabel.textContent = "Unfollow"
@@ -643,4 +763,200 @@ function menuContentextForLibrary(x, y, type) {
 document.addEventListener("mousedown", (e) => {
     const menu = $(".ctx-menu")
     if (!menu.hidden && !menu.contains(e.target)) menu.style.display = "none"
+
 })
+
+// Load user's playlists into sidebar
+async function loadSidebarPlaylists() {
+    try {
+        const { playlists } = await httpRequest.get("me/playlists")
+        renderSidebarPlaylists(playlists)
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+function renderSidebarPlaylists(list = []) {
+    const libraryContent = $(".library-content")
+    if (!libraryContent) return
+
+    libraryContent
+        .querySelectorAll(".library-item[data-playlist-id]")
+        .forEach((el) => el.remove())
+
+    list.forEach((pl) => {
+        const item = document.createElement("div")
+        item.className = "library-item"
+        item.dataset.playlistId = pl.id
+        item.innerHTML = `
+            <img src="${pl.image_url || "placeholder.svg?height=48&width=48"}" alt="${
+            pl.name
+        }" class="item-image" />
+            <div class="item-info">
+                <div class="item-title">${pl.name}</div>
+                <div class="item-subtitle">Playlist • ${
+                    pl.user_display_name || pl.user_username || ""
+                }</div>
+            </div>
+        `
+        item.addEventListener("click", () => {
+            $$(".library-item").forEach((i) => i.classList.remove("active"))
+            item.classList.add("active")
+            renderPlaylistDetail(pl)
+        })
+        libraryContent.appendChild(item)
+    })
+}
+
+async function handleCreatePlaylist() {
+    const accessToken = localStorage.getItem("accessToken")
+    if (!accessToken) {
+        showToast({
+            title: "Error",
+            message: "Please log in to create playlist",
+            type: "error",
+        })
+        return
+    }
+    try {
+        const { playlist } = await httpRequest.post("playlists", { name: "My Playlist" })
+
+        renderPlaylistDetail(playlist)
+        loadSidebarPlaylists()
+    } catch (error) {
+        console.error(error)
+    }
+}
+function toggleDisplaySections(status) {
+    const hitSection = $(".hits-section")
+    const artistSection = $(".artists-section")
+    if (status) {
+        hitSection.classList.toggle("hidden", status)
+        artistSection.classList.toggle("hidden", status)
+    } else {
+        hitSection.classList.toggle("hidden", status)
+        artistSection.classList.toggle("hidden", status)
+    }
+}
+function renderPlaylistDetail(playlist) {
+    toggleDisplaySections(true)
+    const contentWrapper = $(".content-wrapper")
+    const wrapper = $(".my-playlist-section")
+    if (!wrapper) return
+
+    wrapper.innerHTML = `
+        <section class="playlist-detail" data-id="${playlist.id}">
+            <div class="playlist-header">
+                <div class="playlist-image">
+                    <img src="${
+                        playlist.image_url || "placeholder.svg?height=200&width=200"
+                    }" alt="${playlist.name}" />
+                </div>
+                <div class="playlist-meta">
+                    <h1 class="playlist-title">${playlist.name}</h1>
+                </div>
+            </div>
+        </section>
+    `
+    contentWrapper.appendChild(wrapper)
+
+    const img = wrapper.querySelector(".playlist-image")
+    const title = wrapper.querySelector(".playlist-title")
+
+    img.addEventListener("click", () => openEditPlaylistModal(playlist))
+    title.addEventListener("click", () => openEditPlaylistModal(playlist))
+}
+
+function openEditPlaylistModal(playlist) {
+    const overlay = document.createElement("div")
+    overlay.className = "modal-overlay show"
+    overlay.innerHTML = `
+        <div class="modal-container">
+            <div class="modal-heading">
+                <h2>Edit details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form class="playlist-edit-form">
+                <div class="playlist-edit-info">
+                        <div class="playlist-edit-image">
+                        <img class="playlist-img" src="${
+                            playlist.image_url || "placeholder.svg?height=160&width=160"
+                        }" alt="cover" />
+                    </div>
+                    <div class="playlist-edit-inputs">
+                        <input id="playlistNameInput" type="text" value="${
+                            playlist.name
+                        }" />
+                    <textarea id="playlistDescInput" placeholder="Add an optional description">${
+                        playlist.description || ""
+                    }</textarea>
+                    </div>
+                </div>
+                    <button type="submit">Save</button>
+                </form>
+                <p>By proceeding, you agree to give Spotify access to the image you choose to upload. Please make sure you have the right to upload the image.</p>
+            </div>
+        </div>
+    `
+
+    document.body.appendChild(overlay)
+
+    const close = () => overlay.remove()
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay || e.target.classList.contains("modal-close")) {
+            close()
+        }
+    })
+
+    const form = overlay.querySelector(".playlist-edit-form")
+    const imgBox = form.querySelector(".playlist-edit-image")
+
+    const fileInput = document.createElement("input")
+    fileInput.type = "file"
+    fileInput.accept = "image/*"
+    fileInput.hidden = true
+    form.appendChild(fileInput)
+
+    let imagePath = null
+
+    imgBox.addEventListener("click", () => fileInput.click())
+
+    fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const formData = new FormData()
+        formData.append("file", file)
+        try {
+            const { path } = await httpRequest.post("upload", formData)
+            imagePath = path
+            imgBox.innerHTML = `<img src="${path}" alt="cover" />`
+        } catch (err) {
+            console.error(err)
+        }
+    })
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault()
+        const newName = form.querySelector("#playlistNameInput").value.trim()
+        const newDesc = form.querySelector("#playlistDescInput").value.trim()
+
+        const payload = {}
+        if (newName && newName !== playlist.name) payload.name = newName
+        if (newDesc !== (playlist.description || "")) payload.description = newDesc
+        if (imagePath) payload.image_url = imagePath
+        if (Object.keys(payload).length === 0) {
+            close()
+            return
+        }
+        try {
+            await httpRequest.put(`playlists/${playlist.id}`, payload)
+            const updated = { ...playlist, ...payload }
+            renderPlaylistDetail(updated)
+            loadSidebarPlaylists()
+            close()
+        } catch (err) {
+            console.error(err)
+        }
+    })
+}

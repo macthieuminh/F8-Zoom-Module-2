@@ -803,12 +803,16 @@
     background-color: var(--bg-secondary);
     border-radius: var(--radius-lg);
     width: 90%;
-    max-width: 450px;
+    max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     animation: modalSlideIn 0.3s ease-out;
 }
-
+.modal-container p {
+    font-size: 13px;
+    text-align: left;
+    margin-top: 14px;
+}
 @keyframes modalSlideIn {
     from {
         opacity: 0;
@@ -1469,3 +1473,106 @@
 .second__item.none {
     display: none;
 }
+/* Hidden */
+.hidden {
+    display: none;
+}
+.show {
+    display: block;
+}
+/* Playlist detail */
+.playlist-detail {
+    padding: var(--spacing-xl);
+}
+.playlist-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+}
+.playlist-image {
+    width: 200px;
+    height: 200px;
+    background-color: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.playlist-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.playlist-title {
+    font-size: 48px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Edit playlist modal */
+.playlist-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+.modal-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.modal-heading h2 {
+    margin-top: 16px;
+    margin-left: 16px;
+    font-size: 24px;
+}
+.playlist-edit-info {
+    display: flex;
+    gap: 30px;
+}
+.playlist-edit-inputs {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 10px;
+}
+.playlist-edit-image {
+    width: 150px;
+    height: 150px;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+}
+.playlist-edit-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.playlist-edit-form input,
+.playlist-edit-form textarea {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+.playlist-edit-form button {
+    align-self: flex-end;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: #fff;
+    color: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+}
+.playlist-edit-form textarea {
+    min-height: 130px;
+}
+

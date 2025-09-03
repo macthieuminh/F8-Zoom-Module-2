@@ -40,10 +40,9 @@ class HttpRequest {
     async post(path, data, options) {
         return await this._send(path, "POST", data, options)
     }
-    async put(path, options) {
-        return await this._send(path, "PUT", null, options)
+    async put(path, data, options) {
+        return await this._send(path, "PUT", data, options)
     }
-
     async patch(path, data, options) {
         return await this._send(path, "PATCH", data, options)
     }

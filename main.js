@@ -533,10 +533,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Popular
         const popularSection = $(".popular-section")
         const artistControls = $(".artist-controls")
+        const followBtn = artistControls.querySelector(".following-btn")
 
         if (type === "artist") {
-            const { name, background_image_url, is_verified, total_followers } =
-                await httpRequest.get(`artists/${id}`)
+            const {
+                name,
+                background_image_url,
+                is_verified,
+                total_followers,
+                is_following,
+            } = await httpRequest.get(`artists/${id}`)
             artistName.textContent = name
             artistBackgroundImage.src = background_image_url
             if (is_verified) {
@@ -546,7 +552,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             followers.textContent = `${total_followers} người theo dõi`
             popularSection.classList.add("hidden")
-            artistControls.classList.add("hidden")
+            artistControls.classList.remove("hidden")
+            followBtn.classList.toggle("Following", is_following)
+            followBtn.textContent = is_following ? "Following" : "Follow"
+            console.log(is_following)
         } else if (type === "playlist") {
             const { name, image_url, total_tracks } = await httpRequest.get(
                 `playlists/${id}`
@@ -554,12 +563,34 @@ document.addEventListener("DOMContentLoaded", async () => {
             artistName.textContent = name
             artistBackgroundImage.src = image_url
             isVerified.style.display = "none"
+            followBtn.textContent = is_following ? "Unfollow" : "Follow"
+            followBtn.classList.toggle("following", is_following)
+
             if (total_tracks === 0) {
                 popularSection.classList.add("hidden")
                 artistControls.classList.add("hidden")
             } else {
                 popularSection.classList.remove("hidden")
                 artistControls.classList.remove("hidden")
+            }
+        }
+
+        // followBtn.classList.remove("following")
+        followBtn.onclick = async () => {
+            const isFollowing = followBtn.classList.contains("following")
+            const base = type === "artist" ? "artists" : "playlists"
+            try {
+                if (isFollowing) {
+                    const { message } = await httpRequest.del(`${base}/${id}/follow`)
+                    followBtn.classList.remove("following")
+                    followBtn.textContent = "Follow"
+                } else {
+                    const { message } = await httpRequest.put(`${base}/${id}/follow`)
+                    followBtn.classList.add("following")
+                    followBtn.textContent = "Unfollow"
+                }
+            } catch (error) {
+                console.error(error.message)
             }
         }
     }
@@ -659,8 +690,8 @@ function CheckValidPassword(password) {
 document.addEventListener("contextmenu", (e) => {
     e.preventDefault()
     const target = e.target.closest(".library-item")
-    const itemID = target.dataset.playlistId
     if (!target) return
+    const itemID = target.dataset.playlistId || target.dataset.artistId
 
     const type = target.querySelector(".item-subtitle").textContent.trim().toLowerCase()
     const x = e.clientX,
@@ -670,17 +701,21 @@ document.addEventListener("contextmenu", (e) => {
         secondItem = $(".second__item")
     if (firstItem) {
         firstItem.onclick = function (e) {
-            DeleteLibraryItem(itemID)
+            if (type.includes("artist")) {
+                unfollowArtist(itemID)
+            } else {
+                unfollowPlaylist(itemID)
+            }
         }
     }
     if (secondItem) {
         secondItem.onclick = function (e) {
-            DeleteLibraryItem(itemID)
+            deletePlaylist(itemID)
         }
     }
 })
-// Delete Library Item
-async function DeleteLibraryItem(id) {
+// Delete Playlist
+async function deletePlaylist(id) {
     try {
         const menu = $(".ctx-menu")
 
@@ -694,8 +729,46 @@ async function DeleteLibraryItem(id) {
             })
             loadSidebarPlaylists()
             menu.style.display = "none"
-        } else {
-            return
+        }
+    } catch (error) {
+        throw new Error(error)
+    }
+}
+
+// Unfollow playlist
+async function unfollowPlaylist(id) {
+    try {
+        const menu = $(".ctx-menu")
+        const { message } = await httpRequest.del(`playlists/${id}/followers`)
+        if (message) {
+            showToast({
+                title: "Unfollow successful",
+                message: "Bỏ theo dõi playlist thành công",
+                type: "success",
+                duration: 1500,
+            })
+            loadSidebarPlaylists()
+            menu.style.display = "none"
+        }
+    } catch (error) {
+        throw new Error(error)
+    }
+}
+
+// Unfollow artist
+async function unfollowArtist(id) {
+    try {
+        const menu = $(".ctx-menu")
+        const { message } = await httpRequest.del(`artists/${id}/followers`)
+        if (message) {
+            showToast({
+                title: "Unfollow successful",
+                message: "Bỏ theo dõi nghệ sĩ thành công",
+                type: "success",
+                duration: 1500,
+            })
+            loadSidebarPlaylists()
+            menu.style.display = "none"
         }
     } catch (error) {
         throw new Error(error)
@@ -753,11 +826,11 @@ function menuContentextForLibrary(x, y, type) {
 
     if (type.includes("artist")) {
         secondItem.style.display = "none"
-        firstLabel.textContent = "Unfollow"
+        firstLabel.textContent = "Unfollow artist"
     } else {
         secondItem.style.display = "block"
-        firstLabel.textContent = "Remove from profile"
-        secondLabel.textContent = "Delete"
+        firstLabel.textContent = "Unfollow playlist"
+        secondLabel.textContent = "Delete playlist"
     }
     menu.style.display = "inline"
     menu.style.left = `${x}px`
